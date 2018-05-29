@@ -1,2 +1,7 @@
 # k-means
-K-means algorithm
+K-Means algorithm implementation for course work
+
+
+# Building and running
+stack build && stack exec k-means
+
