@@ -3,5 +3,5 @@ K-Means algorithm implementation for course work
 
 
 # Building and running
-stack build && stack exec k-means
+stack build && stack exec k-means file clustersCnt [colIdx]...
 

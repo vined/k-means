@@ -9,9 +9,21 @@ import Data.List (find, groupBy, map, sortOn, zip)
 type Cls = Int
 
 
+-- Utils --
+
 getN :: [a] -> Int
 getN a = (length a) - 1
 
+
+roundTo :: Int -> Double -> Double
+roundTo i d =
+    let
+        pow = 10.0 ^ i
+    in
+        (fromIntegral $ round (pow * d)) / pow
+
+
+-- IO --
 
 splitOn :: Char -> String -> [String]
 splitOn delim str =
@@ -64,6 +76,8 @@ readData filePath usedCols = do
     return $ parseRows usedCols $ map splitLine $ lines content
 
 
+-- Clustering --
+
 diff :: [Double] -> [Double] -> Double
 diff a b =
     foldl (+) 0 $ map (\(ai, bi) -> abs (ai - bi)) $ zip a b
@@ -96,12 +110,14 @@ mean ds = sum ds / fromIntegral (length ds)
 
 
 getCenter :: [[Double]] -> [Double]
-getCenter = map mean
+getCenter ds = map (\idx -> mean $ map (!!idx) ds) $ [0..getN $ head ds]
 
 
 getCenters :: [(Cls, [[Double]])] -> [(Cls, [Double])]
 getCenters = map (\(cls, ds) -> (cls, getCenter ds))
 
+
+-- Error evaluation --
 
 getMaxDiff :: [(Cls, [Double])] -> [(Cls, [Double])] -> Double
 getMaxDiff newCenters oldCenters =
@@ -109,13 +125,15 @@ getMaxDiff newCenters oldCenters =
 
 
 isCloseEnough :: [(Cls, [Double])] -> [(Cls, [Double])] -> Bool
-isCloseEnough newCenters oldCenters = (getMaxDiff newCenters oldCenters) < 0.00001
+isCloseEnough newCenters oldCenters = (getMaxDiff newCenters oldCenters) < 0.000001
 
 
 isEnough :: Int -> [(Cls, [Double])] -> [(Cls, [Double])] -> Bool
 isEnough iteration newCenters oldCenters =
     iteration > 20 || isCloseEnough newCenters oldCenters
 
+
+-- K Means --
 
 kMeans :: Int -> [(Cls, [Double])] -> [[Double]] -> (Int, [(Cls, [Double])], [(Cls, [[Double]])])
 kMeans iteration centers ds =
@@ -127,8 +145,26 @@ kMeans iteration centers ds =
             then
                 (iteration, newCenters, clustered)
             else
-                kMeans (iteration+1) newCenters ds
+                kMeans (iteration + 1) newCenters ds
 
+
+-- Printing --
+
+printClusterSummary :: Int -> (Cls, [[Double]]) -> IO ()
+printClusterSummary total (cls, cluster) =
+    let
+        l = length cluster
+        percentage = roundTo 2 (100.0 * (fromIntegral l) / (fromIntegral total))
+    in
+        putStrLn $ "Cluster " ++ (show cls) ++ ": " ++ (show $ length cluster) ++ " (" ++ show percentage ++ " %)"
+
+
+printClusterCenter :: (Cls, [Double]) -> IO ()
+printClusterCenter (cls, centers) =
+    putStrLn $ "Cluster " ++ (show cls) ++ ": " ++ (foldl (\acc c -> acc ++ (show $ roundTo 4 c) ++ " ") "" centers)
+
+
+-- Main --
 
 main :: IO ()
 main = do
@@ -157,16 +193,23 @@ main = do
 
     g <- getStdGen
     let initialCentersIdx = take clustersCnt (randomRs (0, dataSetSize - 1) g) :: [Int]
-    putStrLn $ "Initial centers: " ++ (foldl (\acc c -> acc ++ (show c) ++ ", ") "" initialCentersIdx)
-
     let initialCenters = zip [0..clustersCnt-1] $ map (\idx -> ds!!idx) initialCentersIdx
+
+    putStrLn "Starting points:"
+    mapM printClusterCenter initialCenters
+
     let (iterations, centers, clusters) = kMeans 1 initialCenters ds
-
+    putStrLn ""
     putStrLn $ "Iterations count: " ++ (show iterations)
-    putStrLn $ "Centers count: " ++ (show $ length centers)
-    putStrLn $ "Clusters count: " ++ (show $ length clusters)
 
-    -- TODO output results
+    putStrLn ""
+    putStrLn "-- Results --"
+    putStrLn "Final cluster centroids:"
+    mapM printClusterCenter centers
+
+    putStrLn ""
+    putStrLn "Clustered instances:"
+    mapM (printClusterSummary dataSetSize) clusters
 
     putStrLn ""
     putStrLn "Done."
