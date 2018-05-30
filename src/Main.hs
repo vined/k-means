@@ -36,25 +36,6 @@ splitLine :: String -> [String]
 splitLine = splitOn ','
 
 
--- getColMean :: [[Double]] -> Int -> Double
--- getColMean rows idx
-
-
--- replaceEmptyWithMean rows
-
-
--- fillEmptyWithMean :: [[Double]] -> [[Double]]
--- fillEmptyWithMean rows =
---     let
---         colsCnt = getN $ head rows
---         means = map (getColMean cols) [0..colsCnt]
---     in
---         replaceEmptyWithMean rows means
---
---
--- getColsData :: [[String]] -> [(Double)]
-
-
 selectCols :: [Int] -> [String] -> [String]
 selectCols usedCols cols =
     map (\idx -> cols!!idx) usedCols
